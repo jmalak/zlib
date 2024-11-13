@@ -4,6 +4,7 @@
  */
 
 #include "gzguts.h"
+#include "zutil.h"
 
 /* Initialize state for writing a gzip file.  Mark initialization by setting
    state->size to non-zero.  Return -1 on a memory allocation failure, or 0 on
@@ -56,6 +57,29 @@ local int gz_init(gz_statep state) {
     return 0;
 }
 
+#ifdef SMALL_MEDIUM
+#define zwrite	write_far
+static int write_far(int fd, unsigned char FAR *fbuf, unsigned len)
+{
+    unsigned char tmpbuf[512];
+    unsigned writ = len;
+    unsigned size = sizeof(tmpbuf);
+
+    while (len > 0) {
+        if (size > len)
+            size = len;
+        zmemcpy(tmpbuf, fbuf, size);
+        if(write(fd, tmpbuf, size) != size)
+            return(Z_ERRNO);
+        len -= size;
+        fbuf += size;
+    }
+    return(writ);
+}
+#else
+#define zwrite	write
+#endif
+
 /* Compress whatever is at avail_in and next_in and write to the output file.
    Return -1 if there is an error writing to the output file or if gz_init()
    fails to allocate memory, otherwise 0.  flush is assumed to be a valid
@@ -75,7 +99,7 @@ local int gz_comp(gz_statep state, int flush) {
     if (state->direct) {
         while (strm->avail_in) {
             put = strm->avail_in > max ? max : strm->avail_in;
-            writ = write(state->fd, strm->next_in, put);
+            writ = zwrite(state->fd, strm->next_in, put);
             if (writ < 0) {
                 gz_error(state, Z_ERRNO, zstrerror());
                 return -1;
@@ -105,7 +129,7 @@ local int gz_comp(gz_statep state, int flush) {
             while (strm->next_out > state->x.next) {
                 put = strm->next_out - state->x.next > (int)max ? max :
                       (unsigned)(strm->next_out - state->x.next);
-                writ = write(state->fd, state->x.next, put);
+                writ = zwrite(state->fd, state->x.next, put);
                 if (writ < 0) {
                     gz_error(state, Z_ERRNO, zstrerror());
                     return -1;
@@ -626,6 +650,6 @@ int ZEXPORT gzclose_w(gzFile file) {
     free(state->path);
     if (close(state->fd) == -1)
         ret = Z_ERRNO;
-    free(state);
+    zffree(state);
     return ret;
 }

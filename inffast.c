@@ -67,7 +67,7 @@ void ZLIB_INTERNAL inflate_fast(z_streamp strm, unsigned start) {
     code const FAR *dcode;      /* local strm->distcode */
     unsigned lmask;             /* mask for first level of length codes */
     unsigned dmask;             /* mask for first level of distance codes */
-    code const *here;           /* retrieved table entry */
+    code const FAR *here;       /* retrieved table entry */
     unsigned op;                /* code bits, operation, extra bits, or */
                                 /*  window position, window bytes to copy */
     unsigned len;               /* match length, unused bytes */

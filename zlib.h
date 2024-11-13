@@ -1836,7 +1836,7 @@ ZEXTERN int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits,
  */
 struct gzFile_s {
     unsigned have;
-    unsigned char *next;
+    unsigned char FAR *next;
     z_off64_t pos;
 };
 ZEXTERN int ZEXPORT gzgetc_(gzFile file);       /* backward compatibility */

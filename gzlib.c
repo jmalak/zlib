@@ -4,6 +4,7 @@
  */
 
 #include "gzguts.h"
+#include "zutil.h"
 
 #if defined(_WIN32) && !defined(__BORLANDC__)
 #  define LSEEK _lseeki64
@@ -98,7 +99,7 @@ local gzFile gz_open(const void *path, int fd, const char *mode) {
         return NULL;
 
     /* allocate gzFile structure to return */
-    state = (gz_statep)malloc(sizeof(gz_state));
+    state = (gz_statep)zfalloc(sizeof(gz_state));
     if (state == NULL)
         return NULL;
     state->size = 0;            /* no buffers allocated yet */
@@ -127,7 +128,7 @@ local gzFile gz_open(const void *path, int fd, const char *mode) {
                 break;
 #endif
             case '+':       /* can't read and write at the same time */
-                free(state);
+                zffree(state);
                 return NULL;
             case 'b':       /* ignore -- will request binary anyway */
                 break;
@@ -164,14 +165,14 @@ local gzFile gz_open(const void *path, int fd, const char *mode) {
 
     /* must provide an "r", "w", or "a" */
     if (state->mode == GZ_NONE) {
-        free(state);
+        zffree(state);
         return NULL;
     }
 
     /* can't force transparent read */
     if (state->mode == GZ_READ) {
         if (state->direct) {
-            free(state);
+            zffree(state);
             return NULL;
         }
         state->direct = 1;      /* for empty file */
@@ -189,7 +190,7 @@ local gzFile gz_open(const void *path, int fd, const char *mode) {
         len = strlen((const char *)path);
     state->path = (char *)malloc(len + 1);
     if (state->path == NULL) {
-        free(state);
+        zffree(state);
         return NULL;
     }
 #ifdef WIDECHAR
@@ -235,7 +236,7 @@ local gzFile gz_open(const void *path, int fd, const char *mode) {
         open((const char *)path, oflag, 0666));
     if (state->fd == -1) {
         free(state->path);
-        free(state);
+        zffree(state);
         return NULL;
     }
     if (state->mode == GZ_APPEND) {

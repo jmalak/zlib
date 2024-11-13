@@ -93,7 +93,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  define OS_CODE  0x00
 #  ifndef Z_SOLO
 #    if defined(__TURBOC__) || defined(__BORLANDC__)
-#      if (__STDC__ == 1) && (defined(__LARGE__) || defined(__COMPACT__))
+#      if __STDC__ == 1
          /* Allow compilation with ANSI keywords only enabled */
          void _Cdecl farfree( void *block );
          void *_Cdecl farmalloc( unsigned long nbytes );
@@ -214,6 +214,27 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
    void ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len);
    int ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len);
    void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len);
+#endif
+
+#ifdef SYS16BIT
+#  ifdef SMALL_MEDIUM /* small or medium model */
+#    if defined(__TURBOC__) || defined(__BORLANDC__)
+#      define zfalloc farmalloc
+#      define zffree farfree
+#    else
+#      define zfalloc _fmalloc
+#      define zffree _ffree
+#    endif
+#    define zmemchr _fmemchr
+#  else
+#    define zfalloc malloc
+#    define zffree free
+#    define zmemchr memchr
+#  endif
+#else
+#  define zfalloc malloc
+#  define zffree free
+#  define zmemchr memchr
 #endif
 
 /* Diagnostic functions */
