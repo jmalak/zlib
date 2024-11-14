@@ -258,18 +258,18 @@ local void fill_window(deflate_state *s) {
     do {
         more = (unsigned)(s->window_size -(ulg)s->lookahead -(ulg)s->strstart);
 
+#ifdef SYS16BIT
         /* Deal with !@#$% 64K limit: */
-        if (sizeof(int) <= 2) {
-            if (more == 0 && s->strstart == 0 && s->lookahead == 0) {
-                more = wsize;
+        if (more == 0 && s->strstart == 0 && s->lookahead == 0) {
+            more = wsize;
 
-            } else if (more == (unsigned)(-1)) {
-                /* Very unlikely, but possible on 16 bit machine if
-                 * strstart == 0 && lookahead == 1 (input done a byte at time)
-                 */
-                more--;
-            }
+        } else if (more == (unsigned)(-1)) {
+            /* Very unlikely, but possible on 16 bit machine if
+             * strstart == 0 && lookahead == 1 (input done a byte at time)
+             */
+            more--;
         }
+#endif
 
         /* If the window is almost full and there is insufficient lookahead,
          * move the upper half to the lower one to make room in the upper half.
@@ -431,7 +431,7 @@ int ZEXPORT deflateInit2_(z_streamp strm, int level, int method,
     if (windowBits == 8) windowBits = 9;  /* until 256-byte window bug fixed */
     s = (deflate_state *) ZALLOC(strm, 1, sizeof(deflate_state));
     if (s == Z_NULL) return Z_MEM_ERROR;
-    strm->state = (struct internal_state FAR *)s;
+    strm->state = (struct internal_state ZFAR *)s;
     s->strm = strm;
     s->status = INIT_STATE;     /* to pass state test in deflateReset() */
 
@@ -553,7 +553,7 @@ int ZEXPORT deflateSetDictionary(z_streamp strm, const Bytef *dictionary,
     uInt str, n;
     int wrap;
     unsigned avail;
-    z_const unsigned char *next;
+    z_const unsigned char ZFAR *next;
 
     if (deflateStateCheck(strm) || dictionary == Z_NULL)
         return Z_STREAM_ERROR;
@@ -1299,7 +1299,7 @@ int ZEXPORT deflateCopy(z_streamp dest, z_streamp source) {
 
     ds = (deflate_state *) ZALLOC(dest, 1, sizeof(deflate_state));
     if (ds == Z_NULL) return Z_MEM_ERROR;
-    dest->state = (struct internal_state FAR *) ds;
+    dest->state = (struct internal_state ZFAR *) ds;
     zmemcpy((voidpf)ds, (voidpf)ss, sizeof(deflate_state));
     ds->strm = dest;
 
@@ -2038,7 +2038,8 @@ local block_state deflate_slow(deflate_state *s, int flush) {
 local block_state deflate_rle(deflate_state *s, int flush) {
     int bflush;             /* set if current block must be flushed */
     uInt prev;              /* byte at distance one to match */
-    Bytef *scan, *strend;   /* scan goes up to strend for length of run */
+    Bytef *scan;            /* scan goes up to strend for length of run */
+    Bytef ZFAR *strend;     /* scan goes up to strend for length of run */
 
     for (;;) {
         /* Make sure that we always have enough lookahead, except

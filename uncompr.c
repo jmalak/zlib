@@ -25,7 +25,7 @@
    an incomplete zlib stream.
 */
 int ZEXPORT uncompress2(Bytef *dest, uLongf *destLen, const Bytef *source,
-                        uLong *sourceLen) {
+                        uLongf *sourceLen) {
     z_stream stream;
     int err;
     const uInt max = (uInt)-1;
