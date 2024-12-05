@@ -3,6 +3,8 @@ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS ON)
 
 project(zlib C)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 set(VERSION "1.3.1")
 
 option(ZLIB_BUILD_EXAMPLES "Enable Zlib Examples" ON)
@@ -74,16 +76,19 @@ if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
         message(STATUS "to 'zconf.h.included' because this file is included with zlib")
         message(STATUS "but CMake generates it automatically in the build directory.")
         file(RENAME ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.included)
-  endif()
+    endif()
 endif()
 
 set(ZLIB_PC ${CMAKE_CURRENT_BINARY_DIR}/zlib.pc)
 configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/zlib.pc.cmakein
-		${ZLIB_PC} @ONLY)
-configure_file(	${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.cmakein
-		${CMAKE_CURRENT_BINARY_DIR}/zconf.h @ONLY)
+                ${ZLIB_PC} @ONLY)
+configure_file( ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.cmakein
+                ${CMAKE_CURRENT_BINARY_DIR}/zconf.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_SOURCE_DIR})
 
+if(CMAKE_C_COMPILER_ID STREQUAL "OpenWatcom")
+    add_compile_options(${WATCOM_CFLAGS})
+endif()
 
 #============================================================================
 # zlib
@@ -123,9 +128,11 @@ set(ZLIB_SRCS
 )
 
 if(NOT MINGW)
-    set(ZLIB_DLL_SRCS
-        win32/zlib1.rc # If present will override custom build rule below.
-    )
+    # If present will override custom build rule below.
+    set(ZLIB_DLL_SRCS win32/zlib1.rc)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows3x")
+        set(ZLIB_DLL_SRCS win16/libmain.c)
+    endif()
 endif()
 
 # parse the full version number from zlib.h and include in ZLIB_FULL_VERSION
@@ -149,40 +156,64 @@ if(MINGW)
     set(ZLIB_DLL_SRCS ${CMAKE_CURRENT_BINARY_DIR}/zlib1rc.obj)
 endif(MINGW)
 
-add_library(zlib SHARED ${ZLIB_SRCS} ${ZLIB_DLL_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
-target_include_directories(zlib PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-add_library(zlibstatic STATIC ${ZLIB_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
-target_include_directories(zlibstatic PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(zlib PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
-set_target_properties(zlib PROPERTIES SOVERSION 1)
+set(ZLIB_BUILD_SHARED_LIB)
+if((NOT CMAKE_C_COMPILER_ID STREQUAL "OpenWatcom") OR (CMAKE_SYSTEM_NAME STREQUAL "Windows3x") OR (CMAKE_SYSTEM_NAME MATCHES "Windows|OS2" AND NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "I86"))
+    set(ZLIB_BUILD_SHARED_LIB 1)
+    add_library(zlib SHARED ${ZLIB_SRCS} ${ZLIB_DLL_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
+    target_include_directories(zlib PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+    set_target_properties(zlib PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+    set_target_properties(zlib PROPERTIES SOVERSION 1)
 
-if(NOT CYGWIN)
-    # This property causes shared libraries on Linux to have the full version
-    # encoded into their final filename.  We disable this on Cygwin because
-    # it causes cygz-${ZLIB_FULL_VERSION}.dll to be created when cygz.dll
-    # seems to be the default.
-    #
-    # This has no effect with MSVC, on that platform the version info for
-    # the DLL comes from the resource file win32/zlib1.rc
-    set_target_properties(zlib PROPERTIES VERSION ${ZLIB_FULL_VERSION})
+    if(NOT CYGWIN)
+        # This property causes shared libraries on Linux to have the full version
+        # encoded into their final filename.  We disable this on Cygwin because
+        # it causes cygz-${ZLIB_FULL_VERSION}.dll to be created when cygz.dll
+        # seems to be the default.
+        #
+        # This has no effect with MSVC, on that platform the version info for
+        # the DLL comes from the resource file win32/zlib1.rc
+        set_target_properties(zlib PROPERTIES VERSION ${ZLIB_FULL_VERSION})
+    endif()
+
+    if(UNIX)
+        # On unix-like platforms the library is almost always called libz
+        set_target_properties(zlib PROPERTIES OUTPUT_NAME z)
+        if(NOT APPLE AND NOT(CMAKE_SYSTEM_NAME STREQUAL AIX))
+            set_target_properties(zlib PROPERTIES LINK_FLAGS "-Wl,--version-script,\"${CMAKE_CURRENT_SOURCE_DIR}/zlib.map\"")
+        endif()
+    elseif(WIN32 OR (CMAKE_C_COMPILER_ID STREQUAL "OpenWatcom"))
+        # Creates zlib1.dll when building shared library version and zdll import library
+        set_target_properties(zlib PROPERTIES SUFFIX "1.dll")
+        set_target_properties(zlib PROPERTIES ARCHIVE_OUTPUT_NAME "zdll")
+    endif()
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows3x")
+        set_target_properties(zlib PROPERTIES COMPILE_FLAGS "-zw -zu")
+    endif()
 endif()
 
+add_library(zlibstatic STATIC ${ZLIB_SRCS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
+target_include_directories(zlibstatic PUBLIC ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 if(UNIX)
     # On unix-like platforms the library is almost always called libz
-   set_target_properties(zlib zlibstatic PROPERTIES OUTPUT_NAME z)
-   if(NOT APPLE AND NOT(CMAKE_SYSTEM_NAME STREQUAL AIX))
-     set_target_properties(zlib PROPERTIES LINK_FLAGS "-Wl,--version-script,\"${CMAKE_CURRENT_SOURCE_DIR}/zlib.map\"")
-   endif()
-elseif(BUILD_SHARED_LIBS AND WIN32)
-    # Creates zlib1.dll when building shared library version
-    set_target_properties(zlib PROPERTIES SUFFIX "1.dll")
+    set_target_properties(zlibstatic PROPERTIES OUTPUT_NAME z)
+else()
+    # Static library on others platforms is almost always called zlib
+    set_target_properties(zlibstatic PROPERTIES OUTPUT_NAME "zlib")
 endif()
 
 if(NOT SKIP_INSTALL_LIBRARIES AND NOT SKIP_INSTALL_ALL )
-    install(TARGETS zlib zlibstatic
+    install(TARGETS zlibstatic
         RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
         ARCHIVE DESTINATION "${INSTALL_LIB_DIR}"
         LIBRARY DESTINATION "${INSTALL_LIB_DIR}" )
+    if(ZLIB_BUILD_SHARED_LIB)
+        install(TARGETS zlib
+            RUNTIME DESTINATION "${INSTALL_BIN_DIR}"
+            ARCHIVE DESTINATION "${INSTALL_LIB_DIR}"
+            LIBRARY DESTINATION "${INSTALL_LIB_DIR}" )
+    endif()
 endif()
 if(NOT SKIP_INSTALL_HEADERS AND NOT SKIP_INSTALL_ALL )
     install(FILES ${ZLIB_PUBLIC_HDRS} DESTINATION "${INSTALL_INC_DIR}")
@@ -199,20 +230,31 @@ endif()
 #============================================================================
 if(ZLIB_BUILD_EXAMPLES)
     add_executable(example test/example.c)
-    target_link_libraries(example zlib)
-    add_test(example example)
-
     add_executable(minigzip test/minigzip.c)
-    target_link_libraries(minigzip zlib)
+    set(ZLIB_EXAMPLES_LINK_LIB zlibstatic)
+    if(ZLIB_BUILD_SHARED_LIB)
+        set(ZLIB_EXAMPLES_LINK_LIB zlib)
+        set_target_properties(example PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+        set_target_properties(minigzip PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+    endif()
+    target_link_libraries(example ${ZLIB_EXAMPLES_LINK_LIB})
+    target_link_libraries(minigzip ${ZLIB_EXAMPLES_LINK_LIB})
+    add_test(example example)
+    add_test(minigzip minigzip)
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows3x")
+        set_target_properties(example PROPERTIES COMPILE_FLAGS "-bw")
+        set_target_properties(minigzip PROPERTIES COMPILE_FLAGS "-bw")
+    endif()
 
     if(HAVE_OFF64_T)
         add_executable(example64 test/example.c)
-        target_link_libraries(example64 zlib)
+        target_link_libraries(example64 ${ZLIB_EXAMPLES_LINK_LIB})
         set_target_properties(example64 PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
         add_test(example64 example64)
 
         add_executable(minigzip64 test/minigzip.c)
-        target_link_libraries(minigzip64 zlib)
+        target_link_libraries(minigzip64 ${ZLIB_EXAMPLES_LINK_LIB})
         set_target_properties(minigzip64 PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
     endif()
 endif()

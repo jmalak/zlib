@@ -1,5 +1,10 @@
 name: Configure
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci-configure:
     name: ${{ matrix.name }}
@@ -85,7 +90,7 @@ jobs:
 
           - name: macOS GCC
             os: macos-latest
-            compiler: gcc-11
+            compiler: gcc
             configure-args: --warn
 
           - name: macOS Clang
@@ -95,7 +100,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install packages (Ubuntu)
       if: runner.os == 'Linux' && matrix.packages
@@ -127,7 +132,7 @@ jobs:
         QEMU_RUN: ${{ matrix.qemu-run }}
 
     - name: Upload build errors
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: ${{ matrix.name }} (configure)
