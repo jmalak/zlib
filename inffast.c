@@ -48,34 +48,34 @@
       output space.
  */
 void ZLIB_INTERNAL inflate_fast(z_streamp strm, unsigned start) {
-    struct inflate_state FAR *state;
-    z_const unsigned char FAR *in;      /* local strm->next_in */
-    z_const unsigned char FAR *last;    /* have enough input while in < last */
-    unsigned char FAR *out;     /* local strm->next_out */
-    unsigned char FAR *beg;     /* inflate()'s initial strm->next_out */
-    unsigned char FAR *end;     /* while out < end, enough space available */
+    struct inflate_state ZFAR *state;
+    z_const unsigned char ZFAR *in;     /* local strm->next_in */
+    z_const unsigned char ZFAR *last;   /* have enough input while in < last */
+    unsigned char ZFAR *out;    /* local strm->next_out */
+    unsigned char ZFAR *beg;    /* inflate()'s initial strm->next_out */
+    unsigned char ZFAR *end;    /* while out < end, enough space available */
 #ifdef INFLATE_STRICT
     unsigned dmax;              /* maximum distance from zlib header */
 #endif
     unsigned wsize;             /* window size or zero if not using window */
     unsigned whave;             /* valid bytes in the window */
     unsigned wnext;             /* window write index */
-    unsigned char FAR *window;  /* allocated sliding window, if wsize != 0 */
+    unsigned char ZFAR *window; /* allocated sliding window, if wsize != 0 */
     unsigned long hold;         /* local strm->hold */
     unsigned bits;              /* local strm->bits */
-    code const FAR *lcode;      /* local strm->lencode */
-    code const FAR *dcode;      /* local strm->distcode */
+    code const ZFAR *lcode;     /* local strm->lencode */
+    code const ZFAR *dcode;     /* local strm->distcode */
     unsigned lmask;             /* mask for first level of length codes */
     unsigned dmask;             /* mask for first level of distance codes */
-    code const *here;           /* retrieved table entry */
+    code const ZFAR *here;      /* retrieved table entry */
     unsigned op;                /* code bits, operation, extra bits, or */
                                 /*  window position, window bytes to copy */
     unsigned len;               /* match length, unused bytes */
     unsigned dist;              /* match distance */
-    unsigned char FAR *from;    /* where to copy match from */
+    unsigned char ZFAR *from;   /* where to copy match from */
 
     /* copy state to local variables */
-    state = (struct inflate_state FAR *)strm->state;
+    state = (struct inflate_state ZFAR *)strm->state;
     in = strm->next_in;
     last = in + (strm->avail_in - 5);
     out = strm->next_out;

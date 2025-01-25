@@ -247,10 +247,25 @@ void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
     Assert(0, "zcfree: ptr not found");
 }
 
-#endif /* __TURBOC__ */
+#elif defined(__WATCOMC__)
 
+/* Watcom C in 16-bit mode */
 
-#ifdef M_I86
+#define MY_ZCALLOC
+
+voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, uInt items, uInt size) {
+    (void)opaque;
+    return halloc((long)items, size);
+}
+
+void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
+    (void)opaque;
+    hfree(ptr);
+}
+
+#else /* __WATCOMC__ */
+
+#if def M_I86
 /* Microsoft C in 16-bit mode */
 
 #  define MY_ZCALLOC
@@ -272,10 +287,11 @@ void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
 
 #endif /* M_I86 */
 
-#endif /* SYS16BIT */
+#endif /* __WATCOMC__ */
 
+#else /* SYS16BIT */
 
-#ifndef MY_ZCALLOC /* Any system without a special alloc function */
+#  define MY_ZCALLOC
 
 #ifndef STDC
 extern voidp malloc(uInt size);
@@ -285,8 +301,7 @@ extern void free(voidpf ptr);
 
 voidpf ZLIB_INTERNAL zcalloc(voidpf opaque, unsigned items, unsigned size) {
     (void)opaque;
-    return sizeof(uInt) > 2 ? (voidpf)malloc(items * size) :
-                              (voidpf)calloc(items, size);
+    return (voidpf)malloc(items * size);
 }
 
 void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
@@ -294,6 +309,6 @@ void ZLIB_INTERNAL zcfree(voidpf opaque, voidpf ptr) {
     free(ptr);
 }
 
-#endif /* MY_ZCALLOC */
+#endif /* SYS16BIT */
 
 #endif /* !Z_SOLO */
