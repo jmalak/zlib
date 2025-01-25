@@ -93,7 +93,7 @@ typedef struct z_stream_s {
     uLong    total_out; /* total number of bytes output so far */
 
     z_const char *msg;  /* last error message, NULL if no error */
-    struct internal_state FAR *state; /* not visible by applications */
+    struct internal_state ZFAR *state; /* not visible by applications */
 
     alloc_func zalloc;  /* used to allocate the internal state */
     free_func  zfree;   /* used to free the internal state */
@@ -105,7 +105,7 @@ typedef struct z_stream_s {
     uLong   reserved;   /* reserved for future use */
 } z_stream;
 
-typedef z_stream FAR *z_streamp;
+typedef z_stream ZFAR *z_streamp;
 
 /*
      gzip header information passed to and from zlib routines.  See RFC 1952
@@ -128,7 +128,7 @@ typedef struct gz_header_s {
                            when writing a gzip file) */
 } gz_header;
 
-typedef gz_header FAR *gz_headerp;
+typedef gz_header ZFAR *gz_headerp;
 
 /*
      The application must update next_in and avail_in when avail_in has dropped
@@ -1074,7 +1074,7 @@ ZEXTERN int ZEXPORT inflateGetHeader(z_streamp strm,
 
 /*
 ZEXTERN int ZEXPORT inflateBackInit(z_streamp strm, int windowBits,
-                                    unsigned char FAR *window);
+                                    unsigned char ZFAR *window);
 
      Initialize the internal stream state for decompression using inflateBack()
    calls.  The fields zalloc, zfree and opaque in strm must be initialized
@@ -1094,13 +1094,13 @@ ZEXTERN int ZEXPORT inflateBackInit(z_streamp strm, int windowBits,
    the version of the header file.
 */
 
-typedef unsigned (*in_func)(void FAR *,
-                            z_const unsigned char FAR * FAR *);
-typedef int (*out_func)(void FAR *, unsigned char FAR *, unsigned);
+typedef unsigned (*in_func)(void ZFAR *,
+                            z_const unsigned char ZFAR * ZFAR *);
+typedef int (*out_func)(void ZFAR *, unsigned char ZFAR *, unsigned);
 
 ZEXTERN int ZEXPORT inflateBack(z_streamp strm,
-                                in_func in, void FAR *in_desc,
-                                out_func out, void FAR *out_desc);
+                                in_func in, void ZFAR *in_desc,
+                                out_func out, void ZFAR *out_desc);
 /*
      inflateBack() does a raw inflate with a single call using a call-back
    interface for input and output.  This is potentially more efficient than
@@ -1286,7 +1286,7 @@ ZEXTERN int ZEXPORT uncompress(Bytef *dest,   uLongf *destLen,
 */
 
 ZEXTERN int ZEXPORT uncompress2(Bytef *dest,   uLongf *destLen,
-                                const Bytef *source, uLong *sourceLen);
+                                const Bytef *source, uLongf *sourceLen);
 /*
      Same as uncompress, except that sourceLen is a pointer, where the
    length of the source is *sourceLen.  On return, *sourceLen is the number of
@@ -1792,7 +1792,7 @@ ZEXTERN int ZEXPORT deflateInit2_(z_streamp strm, int  level, int  method,
 ZEXTERN int ZEXPORT inflateInit2_(z_streamp strm, int  windowBits,
                                   const char *version, int stream_size);
 ZEXTERN int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits,
-                                     unsigned char FAR *window,
+                                     unsigned char ZFAR *window,
                                      const char *version,
                                      int stream_size);
 #ifdef Z_PREFIX_SET
@@ -1836,7 +1836,7 @@ ZEXTERN int ZEXPORT inflateBackInit_(z_streamp strm, int windowBits,
  */
 struct gzFile_s {
     unsigned have;
-    unsigned char *next;
+    unsigned char ZFAR *next;
     z_off64_t pos;
 };
 ZEXTERN int ZEXPORT gzgetc_(gzFile file);       /* backward compatibility */
@@ -1913,7 +1913,7 @@ ZEXTERN int ZEXPORT gzgetc_(gzFile file);       /* backward compatibility */
 /* undocumented functions */
 ZEXTERN const char   * ZEXPORT zError(int);
 ZEXTERN int            ZEXPORT inflateSyncPoint(z_streamp);
-ZEXTERN const z_crc_t FAR * ZEXPORT get_crc_table(void);
+ZEXTERN const z_crc_t ZFAR * ZEXPORT get_crc_table(void);
 ZEXTERN int            ZEXPORT inflateUndermine(z_streamp, int);
 ZEXTERN int            ZEXPORT inflateValidate(z_streamp, int);
 ZEXTERN unsigned long  ZEXPORT inflateCodesUsed(z_streamp);

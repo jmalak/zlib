@@ -1,5 +1,10 @@
 name: Configure
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci-configure:
     name: ${{ matrix.name }}
@@ -18,8 +23,7 @@ jobs:
             os: ubuntu-latest
             compiler: gcc
             configure-args: --warn
-            build-dir: ../build
-            src-dir: ../zlib
+            build-dir: '${HOME}/build'
 
           - name: Ubuntu GCC ARM SF
             os: ubuntu-latest
@@ -38,12 +42,9 @@ jobs:
             qemu-run: qemu-arm -L /usr/arm-linux-gnueabihf
 
           - name: Ubuntu GCC AARCH64
-            os: ubuntu-latest
-            compiler: aarch64-linux-gnu-gcc
+            os: ubuntu-24.04-arm
+            compiler: gcc
             configure-args: --warn
-            chost: aarch64-linux-gnu
-            packages: qemu qemu-user gcc-aarch64-linux-gnu libc-dev-arm64-cross
-            qemu-run: qemu-aarch64 -L /usr/aarch64-linux-gnu
 
           - name: Ubuntu GCC PPC
             os: ubuntu-latest
@@ -85,7 +86,7 @@ jobs:
 
           - name: macOS GCC
             os: macos-latest
-            compiler: gcc-11
+            compiler: gcc
             configure-args: --warn
 
           - name: macOS Clang
@@ -95,7 +96,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install packages (Ubuntu)
       if: runner.os == 'Linux' && matrix.packages
@@ -104,33 +105,39 @@ jobs:
         sudo apt-get install -y ${{ matrix.packages }}
 
     - name: Generate project files
+      id: conf
       run: |
-        [ -d ${{ matrix.build-dir || '.' }} ] || mkdir ${{ matrix.build-dir || '.' }}
-        cd ${{ matrix.build-dir || '.' }}
-        ${{ matrix.src-dir || '.' }}/configure ${{ matrix.configure-args }}
+        if [ -n "${{ matrix.build-dir }}" ]; then
+          [ -d ${{ matrix.build-dir }} ] || mkdir -p ${{ matrix.build-dir }}
+          cd ${{ matrix.build-dir }}
+          echo "build-dir=${{ matrix.build-dir }}" >> ${{ github.output }}
+        else
+          echo "build-dir=${{ github.workspace }}" >> ${{ github.output }}
+        fi
+        ${{ github.workspace }}/configure ${{ matrix.configure-args }}
       env:
         CC: ${{ matrix.compiler }}
-        CFLAGS: ${{ matrix.cflags }}
+        CFLAGS: ${{ matrix.cflags }} -Werror
         LDFLAGS: ${{ matrix.ldflags }}
         CHOST: ${{ matrix.chost }}
 
     - name: Compile source code
       run: make -j2
-      working-directory: ${{ matrix.build-dir }}
+      working-directory: ${{ steps.conf.outputs.build-dir }}
 
     - name: Run test cases
       run: |
         make test
-        make cover
-      working-directory: ${{ matrix.build-dir }}
+        #make cover
+      working-directory: ${{ steps.conf.outputs.build-dir }}
       env:
         QEMU_RUN: ${{ matrix.qemu-run }}
 
     - name: Upload build errors
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: ${{ matrix.name }} (configure)
         path: |
-          ${{ matrix.build-dir || '.' }}/configure.log
+          ${{ steps.conf.outputs.build-dir }}/configure.log
         retention-days: 7

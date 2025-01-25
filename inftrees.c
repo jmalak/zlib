@@ -29,9 +29,9 @@ const char inflate_copyright[] =
    table index bits.  It will differ if the request is greater than the
    longest code or if it is less than the shortest code.
  */
-int ZLIB_INTERNAL inflate_table(codetype type, unsigned short FAR *lens,
-                                unsigned codes, code FAR * FAR *table,
-                                unsigned FAR *bits, unsigned short FAR *work) {
+int ZLIB_INTERNAL inflate_table(codetype type, unsigned short ZFAR *lens,
+                                unsigned codes, code ZFAR * ZFAR *table,
+                                unsigned ZFAR *bits, unsigned short ZFAR *work) {
     unsigned len;               /* a code's length in bits */
     unsigned sym;               /* index of code symbols */
     unsigned min, max;          /* minimum and maximum code lengths */
@@ -46,9 +46,9 @@ int ZLIB_INTERNAL inflate_table(codetype type, unsigned short FAR *lens,
     unsigned low;               /* low bits for current root entry */
     unsigned mask;              /* mask for low root bits */
     code here;                  /* table entry for duplication */
-    code FAR *next;             /* next available space in table */
-    const unsigned short FAR *base;     /* base value table to use */
-    const unsigned short FAR *extra;    /* extra bits table to use */
+    code ZFAR *next;            /* next available space in table */
+    const unsigned short ZFAR *base;    /* base value table to use */
+    const unsigned short ZFAR *extra;   /* extra bits table to use */
     unsigned match;             /* use base and extra for symbol >= match */
     unsigned short count[MAXBITS+1];    /* number of codes of each length */
     unsigned short offs[MAXBITS+1];     /* offsets in table for each length */

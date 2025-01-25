@@ -37,9 +37,9 @@
    (compile with -Dlocal if your debugger can't find static symbols) */
 
 typedef unsigned char  uch;
-typedef uch FAR uchf;
+typedef uch ZFAR uchf;
 typedef unsigned short ush;
-typedef ush FAR ushf;
+typedef ush ZFAR ushf;
 typedef unsigned long  ulg;
 
 #if !defined(Z_U8) && !defined(Z_SOLO) && defined(STDC)
@@ -190,7 +190,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #if defined(pyr) || defined(Z_SOLO)
 #  define NO_MEMCPY
 #endif
-#if defined(SMALL_MEDIUM) && !defined(_MSC_VER) && !defined(__SC__)
+#if defined(SMALL_DATA) && !defined(_MSC_VER) && !defined(__SC__)
  /* Use our own functions for small and medium model with MSC <= 5.0.
   * You may have to use the same strategy for Borland C (untested).
   * The __SC__ check is for Symantec.
@@ -201,7 +201,7 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  define HAVE_MEMCPY
 #endif
 #ifdef HAVE_MEMCPY
-#  ifdef SMALL_MEDIUM /* MSDOS small or medium model */
+#  ifdef SMALL_DATA /* MSDOS small or medium model */
 #    define zmemcpy _fmemcpy
 #    define zmemcmp _fmemcmp
 #    define zmemzero(dest, len) _fmemset(dest, 0, len)
@@ -214,6 +214,27 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
    void ZLIB_INTERNAL zmemcpy(Bytef* dest, const Bytef* source, uInt len);
    int ZLIB_INTERNAL zmemcmp(const Bytef* s1, const Bytef* s2, uInt len);
    void ZLIB_INTERNAL zmemzero(Bytef* dest, uInt len);
+#endif
+
+#ifdef SYS16BIT
+#  ifdef SMALL_DATA /* small or medium model */
+#    if defined(__TURBOC__) || defined(__BORLANDC__)
+#      define zfalloc farmalloc
+#      define zffree farfree
+#    else
+#      define zfalloc _fmalloc
+#      define zffree _ffree
+#    endif
+#    define zmemchr _fmemchr
+#  else
+#    define zfalloc malloc
+#    define zffree free
+#    define zmemchr memchr
+#  endif
+#else
+#  define zfalloc malloc
+#  define zffree free
+#  define zmemchr memchr
 #endif
 
 /* Diagnostic functions */
